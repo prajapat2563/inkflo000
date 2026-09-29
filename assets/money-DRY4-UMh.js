@@ -1,0 +1,1 @@
+function e(e){return e.salePricePaise??e.pricePaise}function t(e){return e.available&&e.stock>0}function n(e){return new Intl.NumberFormat(`en-IN`,{style:`currency`,currency:`INR`,maximumFractionDigits:e%100==0?0:2}).format(e/100)}export{n,e as r,t};

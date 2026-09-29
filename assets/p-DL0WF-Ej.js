@@ -1,0 +1,1 @@
+import{c as e,n as t}from"./cn-Dg1bV1ns.js";import{a as n}from"./ui-DSRO06_V.js";var r=e(),i=function(){return(0,r.jsxs)(`main`,{className:`mx-auto max-w-6xl px-5 py-24`,children:[(0,r.jsx)(`h1`,{className:`font-display text-4xl`,children:`This page is not in the studio.`}),(0,r.jsx)(t,{to:`/`,className:`${n()} mt-6`,children:`Home`})]})};export{i as component};
