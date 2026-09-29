@@ -1,0 +1,1 @@
+import{i as e}from"./screens-k4v_KQcM.js";var t=e;export{t as component};

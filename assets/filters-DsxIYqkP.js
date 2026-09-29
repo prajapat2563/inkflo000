@@ -1,0 +1,1 @@
+import{c as e}from"./cn-Dg1bV1ns.js";import{l as t}from"./index-BKD6GYJK.js";import{o as n}from"./screens-k4v_KQcM.js";var r=e(),i=function(){let{section:e}=t.useSearch();return(0,r.jsx)(n,{section:e})};export{i as component};

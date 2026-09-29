@@ -1,0 +1,1 @@
+import{c as e}from"./cn-Dg1bV1ns.js";import{n as t}from"./index-BKD6GYJK.js";import{c as n}from"./screens-k4v_KQcM.js";var r=e(),i=function(){let{productId:e}=t.useParams();return(0,r.jsx)(n,{productId:e})};export{i as component};

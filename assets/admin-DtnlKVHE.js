@@ -1,0 +1,1 @@
+import{c as e}from"./cn-Dg1bV1ns.js";import{r as t}from"./route-DNtLBCan.js";import{a as n,f as r}from"./screens-k4v_KQcM.js";var i=e(),a=t(`/admin`),o=function(){let{adminStatus:e}=a.useRouteContext();return e.authenticated?(0,i.jsx)(n,{}):(0,i.jsx)(r,{needsSetup:e.needsSetup})};export{o as component};
