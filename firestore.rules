@@ -2,10 +2,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ====== YAHAN APNA ADMIN EMAIL LIKHO (js/config.js wala hi, chhote akshar me) ======
+    // Admin = wahi ek account jiska uid settings/admin me likha hai (pehli baar site se banta hai).
     function isAdmin() {
       return request.auth != null
-          && request.auth.token.email.lower() == 'admin@inkflo.com';
+          && exists(/databases/$(database)/documents/settings/admin)
+          && get(/databases/$(database)/documents/settings/admin).data.uid == request.auth.uid;
     }
     function signedIn() { return request.auth != null; }
 
@@ -22,6 +23,8 @@ service cloud.firestore {
 
     // Site settings, about, filters, banners: sab dekh sakte hain, sirf admin badal sakta hai
     match /settings/{doc} { allow read: if true; allow write: if isAdmin(); }
+    // Pehli baar admin banane ke liye: sirf create (ek hi baar), badal nahi sakta
+    match /settings/admin { allow create: if signedIn() && request.resource.data.uid == request.auth.uid; }
     match /banners/{doc}  { allow read: if true; allow write: if isAdmin(); }
 
     // Coupons: code pata ho to check kar sakte hain, list sirf admin dekh sakta hai

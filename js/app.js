@@ -2,11 +2,10 @@ import {
   db, auth, collection, doc, onSnapshot, getDoc, setDoc, writeBatch, increment, serverTimestamp, query, where,
   onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile
 } from "./firebase.js";
-import { ADMIN_EMAIL } from "./config.js";
+import { adminLogin, adminSetup } from "./adminauth.js";
 import {
   S, CATS, catBySlug, catByKey, notify, site, about, banner, filterValues, esc, money, priceOf, inStock,
-  productImage, toast, friendlyError, saveCart, saveWish
-} from "./core.js";
+  productImage, toast, friendlyError, saveCart, saveWish, BLURBS } from "./core.js";
 
 const $ = (s) => document.querySelector(s);
 const view = $("#view");
@@ -37,9 +36,12 @@ onSnapshot(collection(db, "banners"), (snap) => {
 /* ---------------- auth ---------------- */
 let unsubOrders = null;
 S.myOrders = [];
+S.adminUid = undefined; // undefined = still loading, null = no admin created yet
+const calcAdmin = () => { S.isAdmin = !!(S.user && S.adminUid && S.user.uid === S.adminUid); };
+onSnapshot(doc(db, "settings", "admin"), (d) => { S.adminUid = d.exists() ? d.data().uid : null; calcAdmin(); notify(); }, () => { S.adminUid = null; calcAdmin(); notify(); });
 onAuthStateChanged(auth, (u) => {
   S.user = u;
-  S.isAdmin = !!(u && u.email && u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+  calcAdmin();
   S.authReady = true;
   if (u) { try { localStorage.setItem("inkflo_entry", "account"); } catch {} S.forceGate = false; }
   if (unsubOrders) { unsubOrders(); unsubOrders = null; }
@@ -187,38 +189,33 @@ function renderView() {
 const card = (p) => {
   const on = S.wish.includes(p.id), sale = priceOf(p) < Number(p.price), oos = !inStock(p);
   return `<a class="pcard" href="#/p/${esc(p.id)}">
-    <div class="pimg"><img src="${esc(productImage(p))}" alt="${esc(p.name)}" loading="lazy">
+    <div class="pimg">${productImage(p) ? `<img src="${esc(productImage(p))}" alt="${esc(p.name)}" loading="lazy">` : `<div class="noimg">Add your product</div>`}
       ${oos ? `<span class="tag">Sold out</span>` : sale ? `<span class="tag sale">Sale</span>` : ""}
       <button class="heart ${on ? "on" : ""}" data-act="wish" data-id="${esc(p.id)}" aria-label="Favourite">${I.heart}</button></div>
     <div class="pbody"><h3>${esc(p.name)}</h3>
-      <p class="price">${money(priceOf(p))}${sale ? `<s>${money(p.price)}</s>` : ""}</p></div></a>`;
+      <div class="prow"><p class="price">${money(priceOf(p))}${sale ? `<s>${money(p.price)}</s>` : ""}</p><button class="plus" data-act="qadd" data-id="${esc(p.id)}" aria-label="Add to cart" ${oos ? "disabled" : ""}>+</button></div>
+      <span class="buy" data-act="qbuy" data-id="${esc(p.id)}">Buy now</span></div></a>`;
 };
 const emptyBox = (t = "Coming Soon", s = "No products available yet.") => `<div class="empty"><h3>${t}</h3><p>${s}</p></div>`;
 const catProducts = (key) => S.products.filter((p) => p.category === key);
 
 const pillars = () => `
   <div class="pillars">
-    <article class="pillar"><img src="img/icon-creative.png" alt=""><h3>Creative and Original</h3><p>Every print and product starts as a hand-drawn idea before it becomes something you can hold.</p></article>
-    <article class="pillar g"><img src="img/icon-quality.png" alt=""><h3>Enjoy Quality</h3><p>Heavyweight cotton, real ceramic, proper prints — nothing here is made to fall apart.</p></article>
-    <article class="pillar s"><img src="img/icon-trust.png" alt=""><h3>You Can Trust</h3><p>Clear stock status, real order tracking, and orders that stay on record.</p></article>
+    <article class="pillar"><span class="pn">01</span><h3>Creative and Original</h3><p>Every print and product starts as a hand-drawn idea before it becomes something you can hold.</p></article>
+    <article class="pillar g"><span class="pn">02</span><h3>Enjoy Quality</h3><p>Heavyweight cotton, real ceramic, proper prints — nothing here is made to fall apart.</p></article>
+    <article class="pillar s"><span class="pn">03</span><h3>You Can Trust</h3><p>Clear stock status, real order tracking, and orders that stay on record.</p></article>
   </div>`;
 
 function vHome() {
-  const cats = CATS.map((c) => {
-    const list = catProducts(c.key).slice(0, 4);
-    return `<section class="section">
-      <a class="banner" href="#/c/${c.slug}"><img src="${esc(banner(c.key))}" alt="${esc(c.title)}" loading="lazy"></a>
-      <div class="section-head" style="margin-top:22px"><h2>${c.nav}</h2><a class="link" href="#/c/${c.slug}">View all</a></div>
-      ${list.length ? `<div class="grid">${list.map(card).join("")}</div>` : emptyBox()}
-    </section>`;
-  }).join("");
+  const cards = CATS.map((c) => `<a class="ccard" href="#/c/${c.slug}">
+      <div class="cimg"><img src="img/card-${c.key}.jpg" alt="${esc(c.nav)}" loading="lazy"></div>
+      <div class="cbody"><h3>${c.nav}</h3><p>${BLURBS[c.key]}</p><span class="link">Explore collection →</span></div></a>`).join("");
   return `<div class="wrap">
-    <section style="margin-top:24px"><a class="banner" href="#/c/${CATS[0].slug}"><img src="${esc(banner("hero"))}" alt="INKFLO by Ajaariyah — Good Ideas, Brighter Days"></a></section>
-    ${cats}
+    <section style="margin-top:24px"><a class="banner hero" href="#/c/${CATS[0].slug}"><img src="${esc(banner("hero"))}" alt="INKFLO by Ajaariyah"></a></section>
+    <section class="section"><p class="label">The Studio</p><h2 class="shop-h">Shop by category</h2>
+      <p class="muted" style="max-width:34rem;margin:10px 0 24px">Four worlds, one clover. Tees to wear, lamps to light a room, prints to collect, small things to carry everywhere.</p>
+      <div class="cgrid">${cards}</div></section>
     <section class="section">${pillars()}</section>
-    <section class="section"><div class="card" style="display:grid;gap:10px;background:var(--sage);border-color:var(--sage)">
-      <p class="label" style="color:var(--green-deep)">About INKFLO</p><h2>${esc(about().heading)}</h2>
-      <p style="max-width:40rem;margin:0">${esc(about().body)}</p><div><a class="btn dark" href="#/about">About us</a></div></div></section>
   </div>`;
 }
 
@@ -250,14 +247,13 @@ function vCategory() {
   }).join("");
   const list = filtered(cat);
   return `<div class="wrap" style="margin-top:24px">
-    <div class="banner"><img src="${esc(banner(cat.key))}" alt="${esc(cat.title)}"></div>
-    <div class="cat-layout">
-      <aside class="filters"><h3>Filters</h3>${groups}
-        <div class="fgroup"><b>Max price: ${money(max)}</b><input type="range" min="0" max="${top}" step="50" value="${max}" data-act="fprice"></div>
-        <button class="btn sm block" data-act="fclear">Clear filters</button></aside>
-      <div><p class="count">${list.length} ${cat.noun}</p>
-        ${list.length ? `<div class="grid">${list.map(card).join("")}</div>` : all.length ? emptyBox("No matches", "Try clearing a few filters.") : emptyBox()}</div>
-    </div></div>`;
+    <a class="banner" href="#collection" data-act="tocollection"><img src="${esc(banner(cat.key))}" alt="${esc(cat.title)}"></a>
+    <div id="collection" class="cat-head"><p class="count">${list.length} ${cat.noun}</p></div>
+    <div class="fpanel">${groups}
+      <div class="fgroup"><b>Price · up to ${money(max)}</b><input type="range" min="0" max="${top}" step="50" value="${max}" data-act="fprice"></div>
+      <button class="link" data-act="fclear" style="background:none;border:0">Clear filters</button></div>
+    <div class="cat-list">${list.length ? `<div class="grid">${list.map(card).join("")}</div>` : all.length ? emptyBox("No products available yet", "Nothing matches this combination.") : emptyBox("Coming soon", "This collection is being prepared.")}</div>
+  </div>`;
 }
 
 /* ----- product ----- */
@@ -266,15 +262,15 @@ function vProduct() {
   const p = S.products.find((x) => x.id === route.id);
   if (!p) return S.productsReady ? v404() : `<div class="wrap"><p class="muted" style="margin-top:40px">Loading…</p></div>`;
   if (S.pd.id !== p.id) S.pd = { id: p.id, img: 0, color: (p.colors || [])[0] || "", size: (p.sizes || [])[0] || "", qty: 1 };
-  const imgs = p.images && p.images.length ? p.images : [productImage(p)];
+  const imgs = p.images && p.images.length ? p.images : [""];
   const sale = priceOf(p) < Number(p.price), ok = inStock(p), st = Number(p.stock);
   const stockTxt = !ok ? `<span class="stock no">Sold out</span>` : st <= 5 ? `<span class="stock low">Only ${st} left</span>` : `<span class="stock ok">In stock</span>`;
   const cat = catByKey(p.category);
   return `<div class="wrap">
     <p class="note" style="margin-top:22px"><a href="#/">Home</a> / ${cat ? `<a href="#/c/${cat.slug}">${cat.nav}</a>` : ""} / ${esc(p.name)}</p>
     <div class="pd">
-      <div class="gallery"><div class="main"><img src="${esc(imgs[S.pd.img] || imgs[0])}" alt="${esc(p.name)}"></div>
-        ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((u, i) => `<button class="${i === S.pd.img ? "on" : ""}" data-act="pimg" data-i="${i}"><img src="${esc(u)}" alt=""></button>`).join("")}</div>` : ""}</div>
+      <div class="gallery"><div class="main">${imgs[S.pd.img] || imgs[0] ? `<img src="${esc(imgs[S.pd.img] || imgs[0])}" alt="${esc(p.name)}">` : `<div class="noimg big">Add your product</div>`}</div>
+        ${imgs.length > 1 && imgs[0] ? `<div class="thumbs">${imgs.map((u, i) => `<button class="${i === S.pd.img ? "on" : ""}" data-act="pimg" data-i="${i}"><img src="${esc(u)}" alt=""></button>`).join("")}</div>` : ""}</div>
       <div>
         <h1>${esc(p.name)}</h1>
         <p class="big">${money(priceOf(p))}${sale ? ` <s class="muted" style="font-size:1rem;font-weight:400">${money(p.price)}</s>` : ""}</p>
@@ -419,16 +415,29 @@ document.addEventListener("click", async (e) => {
   const t = e.target.closest("[data-act]");
   if (!t) return;
   const act = t.dataset.act, d = t.dataset;
+  if (act === "qadd" || act === "qbuy") {
+    e.preventDefault(); e.stopPropagation();
+    const p = S.products.find((x) => x.id === d.id); if (!p || !inStock(p)) return;
+    const color = (p.colors || [])[0] || "", size = (p.sizes || [])[0] || "";
+    if (act === "qadd") { if (addToCart(p, 1, color, size)) toast("Added to cart."); }
+    else { S.buyNow = { pid: p.id, qty: 1, color, size }; S.coupon = null; S.couponErr = ""; location.hash = "#/checkout"; }
+    return;
+  }
   if (act === "wish") { e.preventDefault(); e.stopPropagation(); toggleWish(d.id); return; }
   switch (act) {
     case "menu": openMenu(); break;
+    case "tocollection": e.preventDefault(); { const el = document.getElementById("collection"); if (el) el.scrollIntoView({ behavior: "smooth" }); } break;
     case "closemenu": $("#drawer").innerHTML = ""; break;
-    case "account": if (S.user) location.hash = "#/account"; else { S.forceGate = true; gateShown = false; drawGate(); } break;
+    case "account": acctTab = S.isAdmin ? "admin" : "customer"; acctErr = ""; paintAcct(); break;
+    case "closeacct": if (e.target === t) $("#drawer").innerHTML = ""; break;
+    case "closeacct2": $("#drawer").innerHTML = ""; break;
+    case "acctab": acctTab = d.v; acctMode = "login"; acctErr = ""; paintAcct(); break;
+    case "acctmode": acctMode = d.v; acctErr = ""; paintAcct(); break;
     case "openlogin": S.forceGate = true; gateShown = false; drawGate(); break;
     case "closegate": S.forceGate = false; gateShown = false; drawGate(); break;
     case "gatetab": gateTab = d.v; gateErr = ""; paintGate(); break;
     case "guest": try { localStorage.setItem("inkflo_entry", "guest"); } catch {} S.forceGate = false; gateShown = false; drawGate(); break;
-    case "logout": await signOut(auth); try { localStorage.removeItem("inkflo_entry"); } catch {} location.hash = "#/"; toast("Logged out."); break;
+    case "logout": $("#drawer").innerHTML = ""; await signOut(auth); try { localStorage.removeItem("inkflo_entry"); } catch {} location.hash = "#/"; toast("Logged out."); break;
     case "fchip": {
       const cur = S.filt.sel[d.f] || [];
       S.filt.sel[d.f] = cur.includes(d.v) ? cur.filter((x) => x !== d.v) : [...cur, d.v];
@@ -466,8 +475,39 @@ document.addEventListener("click", async (e) => {
 });
 document.addEventListener("input", (e) => {
   const t = e.target;
-  if (t.dataset && t.dataset.act === "fprice") { S.filt.max = Number(t.value); const cat = catBySlug(route.slug); if (cat) { const box = view.querySelector(".cat-layout > div"); const list = filtered(cat); box.innerHTML = `<p class="count">${list.length} ${cat.noun}</p>${list.length ? `<div class="grid">${list.map(card).join("")}</div>` : emptyBox("No matches", "Try clearing a few filters.")}`; t.closest(".fgroup").querySelector("b").textContent = "Max price: " + money(S.filt.max); } }
+  if (t.dataset && t.dataset.act === "fprice") { S.filt.max = Number(t.value); const cat = catBySlug(route.slug); if (cat) { const box = view.querySelector(".cat-list"); const list = filtered(cat); box.innerHTML = list.length ? `<div class="grid">${list.map(card).join("")}</div>` : emptyBox("No products available yet", "Nothing matches this combination."); const ct = view.querySelector(".count"); if (ct) ct.textContent = `${list.length} ${cat.noun}`; t.closest(".fgroup").querySelector("b").textContent = "Max price: " + money(S.filt.max); } }
 });
+
+
+/* ---------------- account drawer (Customer / Admin) ---------------- */
+let acctTab = "customer", acctMode = "login", acctErr = "";
+const paintAuth = () => { if ($("#drawer .acct")) paintAcct(); else paintGate(); };
+function paintAcct() {
+  const signup = acctMode === "signup";
+  const customer = S.user && !S.isAdmin
+    ? `<p style="margin:0 0 4px;font-weight:600">${esc(S.user.displayName || "My account")}</p><p class="muted" style="margin:0 0 16px">${esc(S.user.email)}</p>
+       <div style="display:grid;gap:10px"><a class="btn primary" href="#/account" data-act="closeacct2">Account & orders</a><a class="btn" href="#/wishlist" data-act="closeacct2">Favourites</a><button class="btn" data-act="logout">Log out</button></div>`
+    : `<div class="tabs"><button class="${signup ? "" : "on"}" data-act="acctmode" data-v="login">Log in</button><button class="${signup ? "on" : ""}" data-act="acctmode" data-v="signup">Sign up</button></div>
+       <form data-form="${signup ? "signup" : "login"}">
+        ${signup ? `<label class="field"><span>Full name</span><input name="name" required></label>` : ""}
+        <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="email"></label>
+        ${signup ? `<label class="field"><span>Phone (optional)</span><input name="phone" type="tel"></label>` : ""}
+        <label class="field"><span>Password</span><input name="password" type="password" required minlength="8" autocomplete="${signup ? "new-password" : "current-password"}"></label>
+        ${acctErr ? `<p class="err">${esc(acctErr)}</p>` : ""}
+        <button class="btn primary block" type="submit">${signup ? "Create account" : "Log in"}</button></form>`;
+  const setup = S.adminUid === null;
+  const admin = S.isAdmin
+    ? `<p class="muted" style="margin:0 0 16px">You are logged in as admin.</p><div style="display:grid;gap:10px"><a class="btn primary" href="#/admin" data-act="closeacct2">Open admin panel</a><button class="btn" data-act="logout">Log out</button></div>`
+    : `<form data-form="${setup ? "adminsetup" : "adminlogin"}">
+        ${setup ? `<p class="muted" style="margin:0 0 12px;font-size:14px">First time: choose your admin username and password. This can be done only once.</p>` : ""}
+        <label class="field"><span>Admin username</span><input name="username" required autocomplete="username" autocapitalize="none"></label>
+        <label class="field"><span>Password</span><input name="password" type="password" required ${setup ? 'minlength="8"' : ""} autocomplete="${setup ? "new-password" : "current-password"}"></label>
+        ${acctErr ? `<p class="err">${esc(acctErr)}</p>` : ""}<button class="btn dark block" type="submit">${setup ? "Create admin" : "Admin log in"}</button></form>`;
+  $("#drawer").innerHTML = `<div class="drawer right" data-act="closeacct"><aside class="acct">
+    <div class="acct-h"><h2>Account</h2><button class="iconbtn" data-act="closeacct2" aria-label="Close">✕</button></div>
+    <div class="switch"><button class="${acctTab === "customer" ? "on" : ""}" data-act="acctab" data-v="customer">Customer</button><button class="${acctTab === "admin" ? "on ad" : ""}" data-act="acctab" data-v="admin">Admin</button></div>
+    <div class="acct-b">${acctTab === "admin" ? admin : customer}</div></aside></div>`;
+}
 
 function openMenu() {
   $("#drawer").innerHTML = `<div class="drawer" data-act="closemenu"><nav>
@@ -498,16 +538,21 @@ document.addEventListener("submit", async (e) => {
   e.preventDefault();
   const kind = f.dataset.form, fd = Object.fromEntries(new FormData(f));
   if (kind === "login") {
-    try { gateErr = ""; await signInWithEmailAndPassword(auth, fd.email.trim(), fd.password); toast("Welcome back."); }
-    catch (er) { gateErr = friendlyError(er); paintGate(); }
+    try { gateErr = ""; await signInWithEmailAndPassword(auth, fd.email.trim(), fd.password); toast("Welcome back."); $("#drawer").innerHTML = ""; }
+    catch (er) { gateErr = acctErr = friendlyError(er); paintAuth(); }
   } else if (kind === "signup") {
     try {
       gateErr = "";
       const cr = await createUserWithEmailAndPassword(auth, fd.email.trim(), fd.password);
       await updateProfile(cr.user, { displayName: fd.name.trim() });
       await setDoc(doc(db, "customers", cr.user.uid), { name: fd.name.trim(), email: fd.email.trim(), phone: (fd.phone || "").trim(), createdAt: serverTimestamp() });
-      S.user = auth.currentUser; toast("Account created."); notify();
-    } catch (er) { gateErr = friendlyError(er); paintGate(); }
+      S.user = auth.currentUser; toast("Account created."); $("#drawer").innerHTML = ""; notify();
+    } catch (er) { gateErr = acctErr = friendlyError(er); paintAuth(); }
+  } else if (kind === "adminlogin" || kind === "adminsetup") {
+    acctErr = "";
+    const msg = kind === "adminlogin" ? await adminLogin(fd.username, fd.password) : await adminSetup(fd.username, fd.password);
+    if (msg) { acctErr = msg; paintAcct(); return; }
+    $("#drawer").innerHTML = ""; location.hash = "#/admin";
   } else if (kind === "pay") { S.draft = fd; await startPayment(fd); }
 });
 

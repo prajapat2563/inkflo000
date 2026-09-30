@@ -19,6 +19,7 @@ export const CATS = [
       { id: "type", label: "Product Type", field: "productType" },
       { id: "theme", label: "Theme", field: "theme" } ] }
 ];
+export const BLURBS = { tees: "Heavyweight cotton, hand-drawn prints", lamps: "Warm light, sculptural shapes", prints: "Collectible figures and keepsakes", merch: "Keychains, magnets and coasters" };
 export const catByKey = (k) => CATS.find((c) => c.key === k);
 export const catBySlug = (s) => CATS.find((c) => c.slug === s);
 
@@ -51,19 +52,10 @@ export const DEFAULT_SITE = {
 };
 
 export const SEED_PRODUCTS = [
-  { id: "ink-drop-tee", name: "Ink Drop Tee", category: "tees", description: "Oversized cream tee with a green botanical print and a small INKFLO mark.", price: 1499, salePrice: null, colors: ["Cream", "Ink"], sizes: ["S", "M", "L", "XL"], stock: 14, designType: "Graphic" },
-  { id: "bloom-study-tee", name: "Bloom Study Tee", category: "tees", description: "Oversized olive tee printed with a clover, INKFLO and FLOW.", price: 1699, salePrice: null, colors: ["Cream", "Forest"], sizes: ["S", "M", "L", "XL"], stock: 9, designType: "Anime" },
-  { id: "quiet-type-tee", name: "Quiet Type Tee", category: "tees", description: "Oversized black tee with a white line-art flower on the chest.", price: 1399, salePrice: null, colors: ["Ink"], sizes: ["S", "M", "L", "XL"], stock: 4, designType: "Typography" },
-  { id: "pop-frame-tee", name: "Pop Frame Tee", category: "tees", description: "Oversized black tee with INKFLO FLOW and a small clover.", price: 1599, salePrice: null, colors: ["Sand", "Cream", "Forest"], sizes: ["S", "M", "L", "XL"], stock: 0, designType: "Pop Culture" },
-  { id: "moon-orb-lamp", name: "Moon Orb Lamp", category: "lamps", description: "A glowing moon lamp on a small wooden stand. Warm light for a bedside.", price: 4299, salePrice: 3899, colors: ["Cream", "Sand"], sizes: [], stock: 6, lampType: "Table Lamp" },
-  { id: "wave-glow-lamp", name: "Wave Glow Lamp", category: "lamps", description: "A tall ribbed lamp that glows warm from within.", price: 5499, salePrice: null, colors: ["Sand", "Ink"], sizes: [], stock: 5, lampType: "Desk Lamp" },
-  { id: "bunny-lamp", name: "Bunny Lamp", category: "lamps", description: "A small glowing bunny lamp with a quiet smile.", price: 3199, salePrice: null, colors: ["Cream"], sizes: [], stock: 7, lampType: "Ambient Lamp" },
-  { id: "pocket-dino", name: "Pocket Dino", category: "prints", description: "A chubby green 3D-printed dinosaur. Matte, sturdy, and desk-sized.", price: 799, salePrice: null, colors: ["Sand"], sizes: [], stock: 2, articleCategory: "Toys" },
-  { id: "facet-planter", name: "Facet Planter", category: "prints", description: "A small white faceted planter with a little green plant.", price: 1299, salePrice: null, colors: ["Forest"], sizes: [], stock: 8, articleCategory: "Decor" },
-  { id: "pink-axolotl", name: "Pink Axolotl", category: "prints", description: "A small pink 3D-printed axolotl with a soft smile.", price: 999, salePrice: null, colors: ["Pink"], sizes: [], stock: 10, articleCategory: "Toys" },
-  { id: "leaf-keychain", name: "Leaf Keychain", category: "merch", description: "Enamel pebble charm on a gold ring.", price: 399, salePrice: null, colors: ["Forest"], sizes: [], stock: 24, productType: "Keychains", theme: "Ink" },
-  { id: "smile-magnet", name: "Smile Magnet", category: "merch", description: "Square speckled ceramic magnet.", price: 299, salePrice: null, colors: ["Cream"], sizes: [], stock: 30, productType: "Fridge Magnets", theme: "Smile" },
-  { id: "round-coaster-set", name: "Round Coaster Set", category: "merch", description: "A pair of speckled ceramic coasters.", price: 599, salePrice: null, colors: ["Sand", "Cream"], sizes: [], stock: 16, productType: "Coasters", theme: "Studio" }
+  { id: "add-your-product-tee", name: "Add your product", category: "tees", description: "Sample product. Go to Admin > Products to add your real product.", price: 999, salePrice: null, colors: ["Cream"], sizes: ["S", "M", "L", "XL"], stock: 10, designType: "Graphic" },
+  { id: "add-your-product-lamp", name: "Add your product", category: "lamps", description: "Sample product. Go to Admin > Products to add your real product.", price: 999, salePrice: null, colors: ["Cream"], sizes: [], stock: 10, lampType: "Table Lamp" },
+  { id: "add-your-product-print", name: "Add your product", category: "prints", description: "Sample product. Go to Admin > Products to add your real product.", price: 999, salePrice: null, colors: ["Cream"], sizes: [], stock: 10, articleCategory: "Toys" },
+  { id: "add-your-product-merch", name: "Add your product", category: "merch", description: "Sample product. Go to Admin > Products to add your real product.", price: 999, salePrice: null, colors: ["Cream"], sizes: [], stock: 10, productType: "Keychains", theme: "Ink" }
 ];
 
 export const ORDER_STATUSES = ["placed", "confirmed", "packed", "shipped", "delivered", "cancelled"];
@@ -103,7 +95,7 @@ export const priceOf = (p) => (p.salePrice != null && p.salePrice !== "" && Numb
 export const inStock = (p) => p.available !== false && Number(p.stock) > 0;
 export const slugify = (s) => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "item";
 export const csv = (s) => String(s || "").split(",").map((x) => x.trim()).filter(Boolean);
-export const productImage = (p) => (p.images && p.images[0]) || `img/card-${p.category}.jpg`;
+export const productImage = (p) => (p.images && p.images[0]) || "";
 export const fmtDate = (t) => {
   const d = t && t.toDate ? t.toDate() : t ? new Date(t) : null;
   return d ? d.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";

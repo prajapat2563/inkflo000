@@ -2,7 +2,7 @@ import {
   db, auth, collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp,
   signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider
 } from "./firebase.js";
-import { ADMIN_EMAIL } from "./config.js";
+import { adminLogin, adminSetup } from "./adminauth.js";
 import {
   S, CATS, catByKey, site, about, banner, filterValues, DEFAULT_BANNERS, BANNER_LABELS, DEFAULT_ABOUT,
   SEED_PRODUCTS, ORDER_STATUSES, PAYMENT_STATUSES, esc, money, priceOf, slugify, csv, productImage, fmtDate,
@@ -69,7 +69,7 @@ function soft() {
 function render() {
   if (!mounted) return;
   syncData();
-  if (!S.authReady) { root.innerHTML = `<div class="wrap" style="padding:60px 20px"><p class="muted">Loading…</p></div>`; return; }
+  if (!S.authReady || S.adminUid === undefined) { root.innerHTML = `<div class="wrap" style="padding:60px 20px"><p class="muted">Loading…</p></div>`; return; }
   if (!S.user) return (root.innerHTML = loginHtml());
   if (!S.isAdmin) return (root.innerHTML = denyHtml());
   const fn = { overview, products, orders, coupons, customers, banners, filters, bills, aboutTab, settings }[tab];
@@ -80,14 +80,15 @@ function render() {
     <div class="adm-main">${fn()}</div></div></div>${modal ? modalHtml() : ""}`;
 }
 
-const loginHtml = () => `<div class="gate-box"><div class="gate-card">
-  <div class="wordmark"><img src="img/logo.png" alt="">INKFLO</div><h2 style="font-size:1.6rem;margin:16px 0 4px">Admin login</h2>
-  <form data-f="login"><label class="field"><span>Admin email</span><input name="email" type="email" required autocomplete="username"></label>
-  <label class="field"><span>Password</span><input name="password" type="password" required autocomplete="current-password"></label>
-  ${loginErr ? `<p class="err">${esc(loginErr)}</p>` : ""}<button class="btn primary block" type="submit">Log in</button></form>
-  <p style="margin-top:14px"><a class="link" href="#/">← Back to shop</a></p></div></div>`;
+const loginHtml = () => { const setup = S.adminUid === null; return `<div class="gate-box"><div class="gate-card">
+  <div class="wordmark"><img src="img/logo.png" alt="">INKFLO</div><h2 style="font-size:1.6rem;margin:16px 0 4px">${setup ? "Create admin" : "Admin login"}</h2>
+  ${setup ? `<p class="muted" style="font-size:14px;margin:0 0 6px">First time: choose your admin username and password. This can be done only once.</p>` : ""}
+  <form data-f="${setup ? "setup" : "login"}"><label class="field"><span>Admin username</span><input name="username" required autocomplete="username" autocapitalize="none"></label>
+  <label class="field"><span>Password</span><input name="password" type="password" required ${setup ? 'minlength="8"' : ""} autocomplete="${setup ? "new-password" : "current-password"}"></label>
+  ${loginErr ? `<p class="err">${esc(loginErr)}</p>` : ""}<button class="btn primary block" type="submit">${setup ? "Create admin" : "Log in"}</button></form>
+  <p style="margin-top:14px"><a class="link" href="#/">← Back to shop</a></p></div></div>`; };
 const denyHtml = () => `<div class="gate-box"><div class="gate-card"><h2 style="font-size:1.5rem">This account is not an admin</h2>
-  <p class="muted">You are logged in as ${esc(S.user.email)}. Log out and sign in with the admin email.</p>
+  <p class="muted">You are logged in as ${esc(S.user.email)}. Log out and sign in with the admin username.</p>
   <button class="btn block" data-a="logout">Log out</button></div></div>`;
 
 const head = (t, extra = "") => `<div class="bar-row"><h2 style="margin:0;flex:1">${t}</h2>${extra}</div>`;
@@ -346,10 +347,9 @@ async function onSubmit(e) {
   e.preventDefault();
   const kind = f.dataset.f, fd = Object.fromEntries(new FormData(f));
   try {
-    if (kind === "login") {
-      loginErr = "";
-      try { await signInWithEmailAndPassword(auth, fd.email.trim(), fd.password); }
-      catch (er) { loginErr = friendlyError(er); render(); }
+    if (kind === "login" || kind === "setup") {
+      loginErr = (kind === "login" ? await adminLogin(fd.username, fd.password) : await adminSetup(fd.username, fd.password));
+      render();
     } else if (kind === "product") {
       const data = readProductForm(f);
       if (data.salePrice != null && data.salePrice >= data.price) return toast("Sale price must be lower than the price.", true);
