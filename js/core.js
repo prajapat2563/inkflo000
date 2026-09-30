@@ -156,3 +156,11 @@ export function fileToDataUrl(file, maxW = 900, quality = 0.82, ratio = 0) {
     r.readAsDataURL(file);
   });
 }
+
+// Shrinks a photo step by step until it is small enough to be stored safely (Firestore limit is ~1 MB per product)
+export async function fitImage(file, maxChars = 150000) {
+  const steps = [[900, 0.8], [720, 0.7], [600, 0.6], [480, 0.5], [380, 0.45]];
+  let out = "";
+  for (const [w, q] of steps) { out = await fileToDataUrl(file, w, q); if (out.length <= maxChars) return out; }
+  return out;
+}

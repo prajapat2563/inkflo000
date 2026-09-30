@@ -1,14 +1,15 @@
 import {
-  db, auth, collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp,
+  db, auth, collection, doc, onSnapshot, setDoc, updateDoc, writeBatch, serverTimestamp,
   signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider
 } from "./firebase.js";
 import { adminLogin, adminSetup } from "./adminauth.js";
 import {
   S, CATS, catByKey, site, about, banner, filterValues, DEFAULT_BANNERS, BANNER_LABELS, DEFAULT_ABOUT,
   SEED_PRODUCTS, ORDER_STATUSES, PAYMENT_STATUSES, esc, money, priceOf, slugify, csv, productImage, fmtDate,
-  toast, friendlyError, fileToDataUrl
+  toast, friendlyError, fileToDataUrl, fitImage
 } from "./core.js";
 
+let saving = false;
 let root = null, mounted = false, unsubs = [], tab = "overview", modal = null, loginErr = "";
 const A = { orders: [], customers: [], coupons: [] };
 const TABS = [["overview", "Overview"], ["products", "Products"], ["orders", "Orders"], ["coupons", "Coupons"], ["customers", "Customers"], ["banners", "Banners"], ["filters", "Filters"], ["bills", "Bills"], ["about", "About Us"], ["settings", "Settings"]];
@@ -101,7 +102,7 @@ function overview() {
   const today = new Date().toDateString();
   const rev = (list) => list.reduce((n, o) => n + (Number(o.total) || 0), 0);
   const todays = paid.filter((o) => o.createdAt && o.createdAt.toDate && o.createdAt.toDate().toDateString() === today);
-  const low = S.products.filter((p) => Number(p.stock) <= 3);
+  const low = (S.allProducts || S.products).filter(p => !p.archived).filter((p) => Number(p.stock) <= 3);
   return `<h2>Overview</h2><div class="stats">
     <div class="stat"><span class="muted">Revenue (paid)</span><b>${money(rev(paid))}</b></div>
     <div class="stat"><span class="muted">Today</span><b>${money(rev(todays))}</b></div>
@@ -114,12 +115,12 @@ function overview() {
 
 /* ----- products ----- */
 function products() {
-  return `${head("Products", `<button class="btn primary sm" data-a="newproduct">Add product</button>${S.products.length ? "" : `<button class="btn sm" data-a="seed">Load sample products</button>`}`)}
-  ${table(["", "Name", "Category", "Price", "Stock", ""], S.products.map((p) => `<tr>
+  return `${head("Products", `<button class="btn primary sm" data-a="newproduct">Add product</button>${(S.allProducts || S.products).length ? "" : `<button class="btn sm" data-a="seed">Load sample products</button>`}`)}
+  ${table(["", "Name", "Category", "Price", "Stock", ""], (S.allProducts || S.products).map((p) => `<tr${p.archived ? ' style="opacity:.55"' : ""}>
     <td><img class="th" src="${esc(productImage(p))}" alt=""></td><td><b>${esc(p.name)}</b></td><td>${esc((catByKey(p.category) || {}).nav || p.category)}</td>
     <td>${money(priceOf(p))}${priceOf(p) < Number(p.price) ? ` <s class="muted">${money(p.price)}</s>` : ""}</td>
-    <td>${Number(p.stock)}${p.available === false ? ` <span class="st bad">Hidden</span>` : ""}</td>
-    <td style="white-space:nowrap"><button class="btn sm" data-a="editproduct" data-id="${esc(p.id)}">Edit</button> <button class="btn sm danger" data-a="delproduct" data-id="${esc(p.id)}">Delete</button></td></tr>`),
+    <td>${Number(p.stock)}${p.archived ? ` <span class="st bad">Archived</span>` : p.available === false ? ` <span class="st bad">Hidden</span>` : ""}</td>
+    <td style="white-space:nowrap"><button class="btn sm" data-a="editproduct" data-id="${esc(p.id)}">Edit</button> ${p.archived ? `<button class="btn sm" data-a="restoreproduct" data-id="${esc(p.id)}">Restore</button>` : `<button class="btn sm danger" data-a="archiveproduct" data-id="${esc(p.id)}">Archive</button>`}</td></tr>`),
     "No products yet. Add one, or load the sample products.")}`;
 }
 function modalHtml() {
@@ -183,7 +184,7 @@ function coupons() {
   ${table(["Code", "Discount", "Min order", "Expires", "Status", ""], A.coupons.map((c) => `<tr><td><b>${esc(c.id)}</b></td>
     <td>${c.type === "flat" ? money(c.value) : c.value + "%"}</td><td>${money(c.minOrder || 0)}</td><td>${esc(c.expiresAt || "—")}</td>
     <td><span class="st ${c.active === false ? "bad" : ""}">${c.active === false ? "Off" : "Active"}</span></td>
-    <td style="white-space:nowrap"><button class="btn sm" data-a="editcoupon" data-id="${esc(c.id)}">Edit</button> <button class="btn sm danger" data-a="delcoupon" data-id="${esc(c.id)}">Delete</button></td></tr>`), "No coupons yet.")}`;
+    <td style="white-space:nowrap"><button class="btn sm" data-a="editcoupon" data-id="${esc(c.id)}">Edit</button> <button class="btn sm danger" data-a="delcoupon" data-id="${esc(c.id)}">Turn off</button></td></tr>`), "No coupons yet.")}`;
 }
 function customers() {
   return `${head("Customers")}${table(["Name", "Email", "Phone", "Joined"], A.customers.map((c) => `<tr><td>${esc(c.name)}</td><td>${esc(c.email)}</td><td>${esc(c.phone || "")}</td><td>${esc(fmtDate(c.createdAt))}</td></tr>`), "No customer accounts yet. Guests are not listed here; their details are inside their orders.")}`;
@@ -274,9 +275,10 @@ async function onClick(e) {
       case "closemodal": modal = null; render(); break;
       case "print": window.print(); break;
       case "newproduct": modal = { type: "product", isNew: true, data: { category: "tees", images: [], available: true } }; render(); break;
-      case "editproduct": modal = { type: "product", isNew: false, data: JSON.parse(JSON.stringify(S.products.find((p) => p.id === d.id))) }; render(); break;
+      case "editproduct": modal = { type: "product", isNew: false, data: JSON.parse(JSON.stringify((S.allProducts || S.products).find((p) => p.id === d.id))) }; render(); break;
       case "rmimg": modal.data.images.splice(Number(d.i), 1); render(); break;
-      case "delproduct": if (confirm("Delete this product? Past orders keep their own copy.")) { await deleteDoc(doc(db, "products", d.id)); toast("Product deleted."); } break;
+      case "archiveproduct": if (confirm("Archive this product? It is hidden from shoppers but kept safely forever. You can restore it any time.")) { await updateDoc(doc(db, "products", d.id), { archived: true, available: false }); toast("Product archived (kept safely)."); } break;
+      case "restoreproduct": await updateDoc(doc(db, "products", d.id), { archived: false }); toast("Product restored. Turn on Available in Edit to sell it again."); break;
       case "seed": {
         const b = writeBatch(db);
         SEED_PRODUCTS.forEach((p) => b.set(doc(db, "products", p.id), { ...p, images: [], available: true, createdAt: serverTimestamp() }));
@@ -284,8 +286,8 @@ async function onClick(e) {
       }
       case "newcoupon": modal = { type: "coupon", isNew: true, data: { type: "percent", active: true, minOrder: 0 } }; render(); break;
       case "editcoupon": modal = { type: "coupon", isNew: false, data: A.coupons.find((c) => c.id === d.id) }; render(); break;
-      case "delcoupon": if (confirm("Delete this coupon?")) { await deleteDoc(doc(db, "coupons", d.id)); toast("Coupon deleted."); } break;
-      case "resetbanner": await deleteDoc(doc(db, "banners", d.k)); toast("Banner reset."); break;
+      case "delcoupon": if (confirm("Turn this coupon off? It stays saved and you can turn it on again by editing it.")) { await updateDoc(doc(db, "coupons", d.id), { active: false }); toast("Coupon turned off (kept safely)."); } break;
+      case "resetbanner": await setDoc(doc(db, "banners", d.k), { src: "", updatedAt: serverTimestamp() }); toast("Banner reset to the default."); break;
       case "rmfilter": {
         const vals = filterValues(d.c, d.f).filter((x) => x !== d.v);
         await saveFilter(d.c, d.f, vals); break;
@@ -310,7 +312,7 @@ async function onChange(e) {
       if (kind === "product") {
         for (const f of files) {
           if ((modal.data.images || []).length >= 5) { toast("Up to 5 images per product.", true); break; }
-          modal.data.images = [...(modal.data.images || []), await fileToDataUrl(f, 900, 0.8)];
+          modal.data.images = [...(modal.data.images || []), await fitImage(f)];
         }
         modal.data = { ...readProductForm(t.form), images: modal.data.images, category: t.form.category.value }; render();
       } else if (kind === "banner") {
@@ -351,17 +353,25 @@ async function onSubmit(e) {
       loginErr = (kind === "login" ? await adminLogin(fd.username, fd.password) : await adminSetup(fd.username, fd.password));
       render();
     } else if (kind === "product") {
+      if (saving) return;
       const data = readProductForm(f);
-      if (data.salePrice != null && data.salePrice >= data.price) return toast("Sale price must be lower than the price.", true);
+      data.name = String(data.name || "").trim();
+      if (!data.name) return toast("Please enter the product name.", true);
+      if (!Number.isFinite(data.price) || data.price <= 0) return toast("Please enter a price greater than 0.", true);
+      if (data.salePrice != null && (!Number.isFinite(data.salePrice) || data.salePrice <= 0 || data.salePrice >= data.price)) return toast("Sale price must be more than 0 and lower than the price (or leave it empty).", true);
+      if (!Number.isFinite(data.stock) || data.stock < 0) return toast("Stock must be 0 or more.", true);
+      data.stock = Math.floor(data.stock);
       const images = modal.data.images || [];
-      if (JSON.stringify(images).length > 850000) return toast("Images are too large together. Remove one or use smaller photos.", true);
-      const id = modal.isNew ? `${slugify(data.name)}-${Date.now().toString(36).slice(-4)}` : modal.data.id;
-      const old = modal.isNew ? {} : modal.data;
-      const clean = { ...data, images };
-      delete clean.id;
-      const payload = { ...clean, createdAt: old.createdAt || serverTimestamp() };
-      await setDoc(doc(db, "products", id), payload);
-      modal = null; toast("Product saved. Shoppers see it now."); render();
+      if (JSON.stringify(images).length > 880000) return toast("Photos are too big together. Remove one photo and try again.", true);
+      saving = true;
+      const btn = f.querySelector('button[type="submit"]'); if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+      try {
+        const id = modal.isNew ? `${slugify(data.name)}-${Date.now().toString(36).slice(-4)}${Math.random().toString(36).slice(2, 4)}` : modal.data.id;
+        const payload = { ...data, images };
+        if (modal.isNew) { payload.archived = false; payload.createdAt = serverTimestamp(); }
+        await setDoc(doc(db, "products", id), payload, { merge: true });
+        modal = null; toast("Product saved. Shoppers see it now."); render();
+      } finally { saving = false; if (btn && document.body.contains(btn)) { btn.disabled = false; btn.textContent = "Save product"; } }
     } else if (kind === "coupon") {
       const code = fd.code.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
       if (!code) return toast("Enter a valid code.", true);

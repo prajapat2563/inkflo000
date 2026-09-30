@@ -23,7 +23,8 @@ const fail = (e) => { console.error(e); S.dataError = e.code === "permission-den
 const sortNewest = (a, b) => ((b.createdAt && b.createdAt.seconds) || 0) - ((a.createdAt && a.createdAt.seconds) || 0) || String(a.name).localeCompare(String(b.name));
 
 onSnapshot(collection(db, "products"), (snap) => {
-  S.products = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(sortNewest);
+  S.allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(sortNewest);
+  S.products = S.allProducts.filter((p) => !p.archived);
   S.productsReady = true; S.dataError = ""; notify();
 }, fail);
 onSnapshot(doc(db, "settings", "site"), (s) => { S.siteDoc = s.exists() ? s.data() : {}; notify(); }, fail);
