@@ -1,5 +1,5 @@
 import {
-  db, auth, collection, doc, onSnapshot, setDoc, updateDoc, writeBatch, serverTimestamp,
+  db, auth, collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp,
   signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider
 } from "./firebase.js";
 import { adminLogin, adminSetup } from "./adminauth.js";
@@ -73,7 +73,7 @@ function render() {
   if (!S.authReady || S.adminUid === undefined) { root.innerHTML = `<div class="wrap" style="padding:60px 20px"><p class="muted">Loading…</p></div>`; return; }
   if (!S.user) return (root.innerHTML = loginHtml());
   if (!S.isAdmin) return (root.innerHTML = denyHtml());
-  const fn = { overview, products, orders, coupons, customers, banners, filters, bills, aboutTab, settings }[tab];
+  const fn = { overview, products, orders, coupons, customers, banners, filters, bills, about: aboutTab, settings }[tab];
   root.innerHTML = `<div class="adm">
     <div class="adm-top"><div class="wordmark"><img src="img/logo.png" alt="">INKFLO <span class="muted" style="letter-spacing:0;font-weight:500">Admin</span></div><div class="sp"></div>
       <a class="btn sm" href="#/" target="_blank">View shop</a><button class="btn sm" data-a="logout">Log out</button></div>
@@ -115,12 +115,12 @@ function overview() {
 
 /* ----- products ----- */
 function products() {
-  return `${head("Products", `<button class="btn primary sm" data-a="newproduct">Add product</button>${(S.allProducts || S.products).length ? "" : `<button class="btn sm" data-a="seed">Load sample products</button>`}`)}
+  return `${head("Products", `<button class="btn primary sm" data-a="newproduct">Add product</button><button class="btn sm" data-a="seed">Load dummy products</button>`)}
   ${table(["", "Name", "Category", "Price", "Stock", ""], (S.allProducts || S.products).map((p) => `<tr${p.archived ? ' style="opacity:.55"' : ""}>
     <td><img class="th" src="${esc(productImage(p))}" alt=""></td><td><b>${esc(p.name)}</b></td><td>${esc((catByKey(p.category) || {}).nav || p.category)}</td>
     <td>${money(priceOf(p))}${priceOf(p) < Number(p.price) ? ` <s class="muted">${money(p.price)}</s>` : ""}</td>
     <td>${Number(p.stock)}${p.archived ? ` <span class="st bad">Archived</span>` : p.available === false ? ` <span class="st bad">Hidden</span>` : ""}</td>
-    <td style="white-space:nowrap"><button class="btn sm" data-a="editproduct" data-id="${esc(p.id)}">Edit</button> ${p.archived ? `<button class="btn sm" data-a="restoreproduct" data-id="${esc(p.id)}">Restore</button>` : `<button class="btn sm danger" data-a="archiveproduct" data-id="${esc(p.id)}">Archive</button>`}</td></tr>`),
+    <td style="white-space:nowrap"><button class="btn sm" data-a="editproduct" data-id="${esc(p.id)}">Edit</button> ${p.archived ? `<button class="btn sm" data-a="restoreproduct" data-id="${esc(p.id)}">Restore</button> ` : ""}<button class="btn sm danger" data-a="deleteproduct" data-id="${esc(p.id)}">Delete</button></td></tr>`),
     "No products yet. Add one, or load the sample products.")}`;
 }
 function modalHtml() {
@@ -145,7 +145,8 @@ function modalHtml() {
       ${extra}
       <label class="field" style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="available" ${p.available === false ? "" : "checked"} style="width:auto;height:auto"> <span style="margin:0">Available for sale</span></label>
       <div class="field"><span>Images</span><div class="imgs">${(p.images || []).map((u, i) => `<div><img src="${esc(u)}" alt=""><button type="button" data-a="rmimg" data-i="${i}">×</button></div>`).join("")}</div>
-      <input type="file" accept="image/*" multiple data-upload="product" style="height:auto;padding:10px"></div>
+      <input type="file" accept="image/*" multiple data-upload="product" style="height:auto;padding:10px">
+      <p class="note" style="margin:6px 0 0">Suggestion: use a 1:1 (square) image, 1000 × 1000 px, for the best look. Any ratio or size also works. Max 5 MB per image, up to 5 images.</p></div>
       <div class="row" style="margin-top:16px"><button class="btn primary" type="submit">Save product</button><button class="btn" type="button" data-a="closemodal">Cancel</button></div>
     </form></div></div>`;
   }
@@ -277,12 +278,12 @@ async function onClick(e) {
       case "newproduct": modal = { type: "product", isNew: true, data: { category: "tees", images: [], available: true } }; render(); break;
       case "editproduct": modal = { type: "product", isNew: false, data: JSON.parse(JSON.stringify((S.allProducts || S.products).find((p) => p.id === d.id))) }; render(); break;
       case "rmimg": modal.data.images.splice(Number(d.i), 1); render(); break;
-      case "archiveproduct": if (confirm("Archive this product? It is hidden from shoppers but kept safely forever. You can restore it any time.")) { await updateDoc(doc(db, "products", d.id), { archived: true, available: false }); toast("Product archived (kept safely)."); } break;
+      case "deleteproduct": if (confirm("Delete this product permanently? This cannot be undone.")) { await deleteDoc(doc(db, "products", d.id)); toast("Product deleted."); } break;
       case "restoreproduct": await updateDoc(doc(db, "products", d.id), { archived: false }); toast("Product restored. Turn on Available in Edit to sell it again."); break;
       case "seed": {
         const b = writeBatch(db);
-        SEED_PRODUCTS.forEach((p) => b.set(doc(db, "products", p.id), { ...p, images: [], available: true, createdAt: serverTimestamp() }));
-        await b.commit(); toast("Sample products added."); break;
+        SEED_PRODUCTS.forEach((p) => b.set(doc(db, "products", p.id), { ...p, available: true, archived: false, createdAt: serverTimestamp() }));
+        await b.commit(); toast("Dummy products added (4 in each section)."); break;
       }
       case "newcoupon": modal = { type: "coupon", isNew: true, data: { type: "percent", active: true, minOrder: 0 } }; render(); break;
       case "editcoupon": modal = { type: "coupon", isNew: false, data: A.coupons.find((c) => c.id === d.id) }; render(); break;
@@ -304,17 +305,22 @@ async function onChange(e) {
     if (t.dataset.a === "orderstatus") { await updateDoc(doc(db, "orders", t.dataset.id), { status: t.value }); toast("Order status updated."); return; }
     if (t.dataset.a === "paystatus") { await updateDoc(doc(db, "orders", t.dataset.id), { paymentStatus: t.value }); toast("Payment status updated."); return; }
     if (t.hasAttribute("data-cat") && modal && modal.type === "product") { // category changed inside product form: keep typed values
-      modal.data = { ...readProductForm(t.form), category: t.value, images: modal.data.images }; render(); return;
+      modal.data = { ...modal.data, ...readProductForm(t.form), category: t.value, images: modal.data.images }; render(); return;
     }
     if (t.dataset.upload) {
       const files = [...t.files]; if (!files.length) return;
       const kind = t.dataset.upload;
       if (kind === "product") {
+        const MAX = 5 * 1024 * 1024;
+        let added = 0;
         for (const f of files) {
           if ((modal.data.images || []).length >= 5) { toast("Up to 5 images per product.", true); break; }
-          modal.data.images = [...(modal.data.images || []), await fitImage(f)];
+          if (f.size > MAX) { toast(`"${f.name}" is larger than 5 MB. Please choose a smaller image.`, true); continue; }
+          try { modal.data.images = [...(modal.data.images || []), await fitImage(f)]; added++; }
+          catch (er) { toast(`"${f.name}": ${friendlyError(er)}`, true); }
         }
-        modal.data = { ...readProductForm(t.form), images: modal.data.images, category: t.form.category.value }; render();
+        modal.data = { ...modal.data, ...readProductForm(t.form), images: modal.data.images, category: t.form.category.value }; render();
+        if (added) toast("Tip: a 1:1 image (1000 × 1000 px) looks best. Other ratios still work.");
       } else if (kind === "banner") {
         const k = t.dataset.k, url = await fileToDataUrl(files[0], k === "about" ? 1400 : 1600, 0.82, k === "about" ? 1400 / 559 : 0);
         await setDoc(doc(db, "banners", k), { src: url, updatedAt: serverTimestamp() }); toast("Banner updated for everyone.");

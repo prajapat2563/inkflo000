@@ -36,13 +36,14 @@ Agar admin username/password bhool gaye: Firebase Console -> Firestore -> `setti
 - Razorpay Dashboard me **auto-capture** ON rakho.
 - Bina server ke payment ka signature verify nahi ho sakta, isliye har order ka **Payment ID** Razorpay Dashboard se match kar lena.
 
-## Kuch bhi delete nahi hota
+## Delete ke niyam
 
-- `firestore.rules` me har jagah delete band hai (admin ke liye bhi). Products/coupons ko admin me **Archive / Turn off** kar sakte ho, wo hide ho jaate hain par hamesha saved rehte hain (Restore bhi hota hai).
+- Products ko admin panel me **Delete** kar sakte ho (rules me sirf admin ko products delete ki permission hai, **rules dobara Publish karna zaroori hai**). Baaki collections me delete band hai; coupons ko **Turn off** karte ho.
 - Orders aur bills kabhi delete ya edit nahi hote (sirf status badalta hai).
 
 ## Jaan lene wali baatein
 
+- Product image: koi bhi ratio/size chalega (max 5 MB har image, 5 images tak). Best: 1:1, 1000 x 1000 px.
 - Images Firestore me chhoti JPEG ke roop me save hoti hain (Storage plan nahi chahiye).
 - Bills = har paid order, permanent (delete ka option hi nahi).
 - Customer wishlist/cart us device ke browser me rehti hai.

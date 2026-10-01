@@ -10,7 +10,7 @@ service cloud.firestore {
     }
     function signedIn() { return request.auth != null; }
 
-    // NIYAM: kisi bhi collection me DELETE allowed nahi hai (admin ko bhi nahi). Data hamesha bacha rahega.
+    // NIYAM: Products ko sirf admin delete kar sakta hai. Baaki sab collections me DELETE band hai.
 
     // Products: sab dekh sakte hain; sirf admin banata/badalta hai.
     // Order ke time customer sirf "stock" ghata sakta hai (badha nahi sakta).
@@ -21,7 +21,7 @@ service cloud.firestore {
                     && request.resource.data.stock is number
                     && request.resource.data.stock >= 0
                     && request.resource.data.stock <= resource.data.stock;
-      allow delete: if false;
+      allow delete: if isAdmin();
     }
 
     // Site settings, about, filters: sab dekh sakte hain, sirf admin badalta hai.

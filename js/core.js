@@ -52,10 +52,22 @@ export const DEFAULT_SITE = {
 };
 
 export const SEED_PRODUCTS = [
-  { id: "add-your-product-tee", name: "Add your product", category: "tees", description: "Sample product. Go to Admin > Products to add your real product.", price: 999, salePrice: null, colors: ["Cream"], sizes: ["S", "M", "L", "XL"], stock: 10, designType: "Graphic" },
-  { id: "add-your-product-lamp", name: "Add your product", category: "lamps", description: "Sample product. Go to Admin > Products to add your real product.", price: 999, salePrice: null, colors: ["Cream"], sizes: [], stock: 10, lampType: "Table Lamp" },
-  { id: "add-your-product-print", name: "Add your product", category: "prints", description: "Sample product. Go to Admin > Products to add your real product.", price: 999, salePrice: null, colors: ["Cream"], sizes: [], stock: 10, articleCategory: "Toys" },
-  { id: "add-your-product-merch", name: "Add your product", category: "merch", description: "Sample product. Go to Admin > Products to add your real product.", price: 999, salePrice: null, colors: ["Cream"], sizes: [], stock: 10, productType: "Keychains", theme: "Ink" }
+  { id: "dummy-tees-1", name: "Midnight Ink Tee", category: "tees", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 1199, salePrice: null, colors: ["Ink"], sizes: ["S", "M", "L", "XL"], stock: 10, designType: "Graphic", images: ["img/dummy/tees-1.jpg"] },
+  { id: "dummy-tees-2", name: "Anime Sketch Tee", category: "tees", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 1299, salePrice: 999, colors: ["Cream"], sizes: ["S", "M", "L", "XL"], stock: 10, designType: "Anime", images: ["img/dummy/tees-2.jpg"] },
+  { id: "dummy-tees-3", name: "Pop Wave Tee", category: "tees", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 1249, salePrice: null, colors: ["Forest"], sizes: ["S", "M", "L", "XL"], stock: 10, designType: "Pop Culture", images: ["img/dummy/tees-3.jpg"] },
+  { id: "dummy-tees-4", name: "Type Quiet Tee", category: "tees", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 1099, salePrice: null, colors: ["Sand"], sizes: ["S", "M", "L", "XL"], stock: 10, designType: "Typography", images: ["img/dummy/tees-4.jpg"] },
+  { id: "dummy-lamps-1", name: "Cloud Table Lamp", category: "lamps", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 1799, salePrice: null, colors: ["Cream"], sizes: [], stock: 10, lampType: "Table Lamp", images: ["img/dummy/lamps-1.jpg"] },
+  { id: "dummy-lamps-2", name: "Arc Desk Lamp", category: "lamps", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 1499, salePrice: 1299, colors: ["Ink"], sizes: [], stock: 10, lampType: "Desk Lamp", images: ["img/dummy/lamps-2.jpg"] },
+  { id: "dummy-lamps-3", name: "Glow Ambient Lamp", category: "lamps", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 1999, salePrice: null, colors: ["Sand"], sizes: [], stock: 10, lampType: "Ambient Lamp", images: ["img/dummy/lamps-3.jpg"] },
+  { id: "dummy-lamps-4", name: "Moon Mood Lamp", category: "lamps", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 1699, salePrice: null, colors: ["Forest"], sizes: [], stock: 10, lampType: "Ambient Lamp", images: ["img/dummy/lamps-4.jpg"] },
+  { id: "dummy-prints-1", name: "Mini Fox Figure", category: "prints", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 599, salePrice: null, colors: ["Cream"], sizes: [], stock: 10, articleCategory: "Toys", images: ["img/dummy/prints-1.jpg"] },
+  { id: "dummy-prints-2", name: "Desk Planter Pot", category: "prints", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 699, salePrice: 549, colors: ["Forest"], sizes: [], stock: 10, articleCategory: "Decor", images: ["img/dummy/prints-2.jpg"] },
+  { id: "dummy-prints-3", name: "Pen Stand Tower", category: "prints", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 449, salePrice: null, colors: ["Ink"], sizes: [], stock: 10, articleCategory: "Desk", images: ["img/dummy/prints-3.jpg"] },
+  { id: "dummy-prints-4", name: "Cat Keepsake", category: "prints", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 649, salePrice: null, colors: ["Pink"], sizes: [], stock: 10, articleCategory: "Toys", images: ["img/dummy/prints-4.jpg"] },
+  { id: "dummy-merch-1", name: "Smile Keychain", category: "merch", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 199, salePrice: null, colors: ["Cream"], sizes: [], stock: 10, productType: "Keychains", theme: "Ink", images: ["img/dummy/merch-1.jpg"] },
+  { id: "dummy-merch-2", name: "Studio Fridge Magnet", category: "merch", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 149, salePrice: null, colors: ["Cream"], sizes: [], stock: 10, productType: "Fridge Magnets", theme: "Studio", images: ["img/dummy/merch-2.jpg"] },
+  { id: "dummy-merch-3", name: "Ink Coaster Set", category: "merch", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 349, salePrice: 299, colors: ["Cream"], sizes: [], stock: 10, productType: "Coasters", theme: "Ink", images: ["img/dummy/merch-3.jpg"] },
+  { id: "dummy-merch-4", name: "Pocket Keychain", category: "merch", description: "Dummy preview product. Delete it from Admin > Products when real products are added.", price: 229, salePrice: null, colors: ["Cream"], sizes: [], stock: 10, productType: "Keychains", theme: "Smile", images: ["img/dummy/merch-4.jpg"] }
 ];
 
 export const ORDER_STATUSES = ["placed", "confirmed", "packed", "shipped", "delivered", "cancelled"];
@@ -129,7 +141,7 @@ export function friendlyError(e) {
 }
 
 // Image -> resized JPEG data URL (stored directly in Firestore, no Storage plan needed)
-export function fileToDataUrl(file, maxW = 900, quality = 0.82, ratio = 0) {
+export function fileToDataUrl(file, maxW = 900, quality = 0.82, ratio = 0, byLongSide = false) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onerror = () => reject(new Error("Could not read the image."));
@@ -143,7 +155,7 @@ export function fileToDataUrl(file, maxW = 900, quality = 0.82, ratio = 0) {
           if (cur > ratio) { sw = sh * ratio; sx = (img.width - sw) / 2; }
           else { sh = sw / ratio; sy = (img.height - sh) / 2; }
         }
-        const scale = Math.min(1, maxW / sw);
+        const scale = Math.min(1, maxW / (byLongSide ? Math.max(sw, sh) : sw));
         const c = document.createElement("canvas");
         c.width = Math.round(sw * scale); c.height = Math.round(sh * scale);
         const ctx = c.getContext("2d");
@@ -161,6 +173,6 @@ export function fileToDataUrl(file, maxW = 900, quality = 0.82, ratio = 0) {
 export async function fitImage(file, maxChars = 150000) {
   const steps = [[900, 0.8], [720, 0.7], [600, 0.6], [480, 0.5], [380, 0.45]];
   let out = "";
-  for (const [w, q] of steps) { out = await fileToDataUrl(file, w, q); if (out.length <= maxChars) return out; }
+  for (const [w, q] of steps) { out = await fileToDataUrl(file, w, q, 0, true); if (out.length <= maxChars) return out; }
   return out;
 }

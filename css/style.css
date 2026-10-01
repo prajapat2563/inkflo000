@@ -72,8 +72,8 @@ h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.1;margin:0}
 @media(min-width:1040px){.grid{grid-template-columns:repeat(4,1fr)}}
 .pcard{position:relative;display:block;overflow:hidden;border-radius:22px;border:1px solid var(--line);background:var(--paper);transition:transform .3s}
 .pcard:hover{transform:translateY(-4px)}
-.pimg{position:relative;aspect-ratio:4/5;background:var(--sage);overflow:hidden}
-.pimg img{width:100%;height:100%;object-fit:cover}
+.pimg{position:relative;aspect-ratio:1/1;background:var(--sage);overflow:hidden}
+.pimg img{width:100%;height:100%;object-fit:contain}
 .pbody{padding:12px 14px 16px}
 .pbody h3{font-size:1.05rem;font-weight:600}
 .price{margin:6px 0 0;font-weight:700}
@@ -114,11 +114,11 @@ input[type=range]{width:100%;accent-color:var(--green)}
 .pd{display:grid;gap:28px;margin-top:28px}
 @media(min-width:860px){.pd{grid-template-columns:1.05fr 1fr}}
 .gallery .main{aspect-ratio:1/1;border-radius:26px;overflow:hidden;background:var(--sage);border:1px solid var(--line)}
-.gallery .main img{width:100%;height:100%;object-fit:cover}
+.gallery .main img{width:100%;height:100%;object-fit:contain}
 .thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .thumbs button{width:64px;height:64px;border-radius:12px;overflow:hidden;border:2px solid transparent;padding:0;background:var(--sage)}
 .thumbs button.on{border-color:var(--green)}
-.thumbs img{width:100%;height:100%;object-fit:cover}
+.thumbs img{width:100%;height:100%;object-fit:contain}
 .pd h1{font-size:clamp(1.9rem,4vw,2.8rem)}
 .pd .big{font-size:1.5rem;font-weight:700;margin:12px 0}
 .opt{margin:16px 0}
@@ -269,3 +269,18 @@ td img.th{width:44px;height:44px;border-radius:10px;object-fit:cover}
 .plus:hover{transform:scale(1.08)}.plus:active{transform:scale(.9)}.plus:disabled{background:var(--line);cursor:not-allowed}
 .buy{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green)}
 .buy:hover{text-decoration:underline}
+
+/* mobile: compact product cards so 4 products (2x2) fit on one screen */
+@media(max-width:759px){
+  .grid{gap:10px}
+  .pcard{border-radius:16px}
+  .pbody{padding:8px 10px 10px}
+  .pbody h3{font-size:.85rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em}
+  .price{font-size:.85rem;margin-top:2px}
+  .price s{margin-left:4px}
+  .plus{width:30px;height:30px;font-size:17px}
+  .buy{margin-top:4px;font-size:11px}
+  .heart{width:30px;height:30px;right:6px;top:6px}
+  .heart svg{width:15px;height:15px}
+  .tag{left:6px;top:6px;padding:3px 8px;font-size:10px}
+}
